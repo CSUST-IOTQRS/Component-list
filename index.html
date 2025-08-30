@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub元器件CSV检索系统</title>
+    <title>GitHub元器件检索系统</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -87,7 +87,7 @@
             padding: 5px 15px;
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
         }
         
         .search-box i {
@@ -99,7 +99,7 @@
             border: none;
             padding: 12px;
             width: 100%;
-            font-size: 1.1rem;
+            font-size: 1rem;
             outline: none;
             background: transparent;
         }
@@ -163,34 +163,34 @@
             color: #7f8c8d;
         }
         
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(52, 152, 219, 0.3);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         footer {
             text-align: center;
             padding: 20px;
             color: white;
             margin-top: 30px;
             width: 100%;
-        }
-        
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-        }
-        
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
         
         @media (max-width: 768px) {
@@ -208,7 +208,7 @@
 
     <div class="container">
         <header>
-            <h1><i class="fas fa-search"></i> GitHub元器件CSV检索系统</h1>
+            <h1><i class="fas fa-search"></i> GitHub元器件检索系统</h1>
             <div class="time-display">
                 <i class="far fa-clock"></i>
                 <span id="current-time">正在加载时间...</span>
@@ -219,12 +219,17 @@
         <div class="controls">
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" id="search" placeholder="输入关键词搜索所有元器件...">
+                <input type="text" id="search" placeholder="输入关键词搜索元器件...">
             </div>
         </div>
         
         <div class="main-content">
-            <div class="table-container">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在加载元器件数据...</p>
+            </div>
+            
+            <div class="table-container" id="table-container" style="display: none;">
                 <table>
                     <thead>
                         <tr>
@@ -235,19 +240,14 @@
                         </tr>
                     </thead>
                     <tbody id="tbody">
-                        <tr>
-                            <td colspan="4" class="loading">
-                                <div class="spinner"></div>
-                                <div>正在加载所有CSV文件数据...</div>
-                            </td>
-                        </tr>
+                        <!-- 数据将通过JS动态填充 -->
                     </tbody>
                 </table>
             </div>
             
             <div class="status">
                 <i class="fas fa-info-circle"></i>
-                <span id="status-text">正在初始化...</span>
+                <span id="status-text">正在加载数据...</span>
             </div>
         </div>
     </div>
@@ -280,10 +280,12 @@
         const searchInput = document.getElementById('search');
         const tbody = document.getElementById('tbody');
         const statusText = document.getElementById('status-text');
+        const loadingElement = document.getElementById('loading');
+        const tableContainer = document.getElementById('table-container');
         
-        let allData = []; // 存储所有CSV文件合并后的数据
+        let allData = [];
         
-        // 定义所有CSV文件列表（根据用户提供的文件名）
+        // 预定义的CSV文件列表
         const csvFiles = [
             '电感-磁珠.CSV',
             '电阻.CSV',
@@ -297,69 +299,54 @@
         
         // 加载所有CSV文件
         function loadAllCSVFiles() {
-            statusText.textContent = `正在加载 ${csvFiles.length} 个CSV文件...`;
+            const promises = csvFiles.map(file => {
+                return new Promise((resolve, reject) => {
+                    // 在实际应用中，这里应该是GitHub raw内容的URL
+                    // 例如: `https://raw.githubusercontent.com/用户名/仓库名/主分支/${file}`
+                    // 这里我们使用相对路径
+                    Papa.parse(file, {
+                        download: true,
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            resolve(results.data);
+                        },
+                        error: function(error) {
+                            console.error(`加载文件 ${file} 时出错:`, error);
+                            resolve([]); // 即使一个文件失败，继续加载其他文件
+                        }
+                    });
+                });
+            });
             
-            // 在实际应用中，这里应该是GitHub raw内容的URL
-            // 例如: `https://raw.githubusercontent.com/用户名/仓库名/主分支/${filename}`
-            // 这里我们使用模拟数据
-            simulateAllCSVLoading();
+            return Promise.all(promises);
         }
         
-        // 模拟加载所有CSV文件（实际使用时替换为Papa.parse解析真实CSV）
-        function simulateAllCSVLoading() {
-            // 模拟网络延迟
-            setTimeout(() => {
-                // 生成所有文件的模拟数据
-                allData = [];
+        // 初始化加载数据
+        async function init() {
+            try {
+                const results = await loadAllCSVFiles();
                 
-                // 定义各文件的数据特征
-                const fileCategories = {
-                    '电感-磁珠.CSV': ['功率电感', '磁珠', '高频电感'],
-                    '电阻.CSV': ['碳膜电阻', '金属膜电阻', '贴片电阻'],
-                    'LED.CSV': ['红色LED', '绿色LED', '蓝色LED'],
-                    '电容.CSV': ['陶瓷电容', '电解电容', '钽电容'],
-                    '集成IC.CSV': ['运算放大器', '微控制器', '电源管理IC'],
-                    '开关-按键.CSV': ['轻触开关', '拨动开关', '按键开关'],
-                    '二极管-三极管-MOS.CSV': ['整流二极管', '三极管', 'MOSFET'],
-                    '接口座子-排针-排母.CSV': ['USB接口', '排针', '排母']
-                };
+                // 合并所有文件的数据
+                allData = results.flat();
                 
-                const fileValues = {
-                    '电感-磁珠.CSV': ['10uH', '100uH', '1mH'],
-                    '电阻.CSV': ['10Ω', '1kΩ', '10kΩ'],
-                    'LED.CSV': ['2V 20mA', '3V 20mA', '3.2V 20mA'],
-                    '电容.CSV': ['10nF', '100nF', '10uF'],
-                    '集成IC.CSV': ['SOIC-8', 'QFP-64', 'SOT-23'],
-                    '开关-按键.CSV': ['6×6mm', '12×12mm', '8×8mm'],
-                    '二极管-三极管-MOS.CSV': ['1A 100V', '2A 200V', '5A 500V'],
-                    '接口座子-排针-排母.CSV': ['2.54mm间距', '1.27mm间距', '2.0mm间距']
-                };
+                if (allData.length === 0) {
+                    statusText.textContent = "未找到任何元器件数据";
+                    return;
+                }
                 
-                const packages = ['0805', '1206', 'SMD', '直插', '贴片'];
-                
-                // 为每个文件生成数据
-                csvFiles.forEach(file => {
-                    const categories = fileCategories[file];
-                    const values = fileValues[file];
-                    
-                    if (categories && values) {
-                        for (let i = 0; i < 25; i++) {
-                            const categoryIndex = i % categories.length;
-                            allData.push({
-                                '元器件名称': `${categories[categoryIndex]} ${i+1}`,
-                                '数值': values[categoryIndex],
-                                '封装': packages[Math.floor(Math.random() * packages.length)],
-                                '数量': Math.floor(Math.random() * 1000),
-                                '来源文件': file
-                            });
-                        }
-                    }
-                });
-                
-                // 渲染所有数据
+                // 渲染表格
                 renderTable(allData);
-                statusText.textContent = `已加载 ${csvFiles.length} 个文件，共 ${allData.length} 条记录`;
-            }, 1500);
+                statusText.textContent = `已加载 ${allData.length} 条元器件记录`;
+                
+                // 隐藏加载动画，显示表格
+                loadingElement.style.display = 'none';
+                tableContainer.style.display = 'block';
+            } catch (error) {
+                console.error("加载数据时出错:", error);
+                statusText.textContent = "加载数据时出错，请检查控制台";
+                loadingElement.innerHTML = '<p style="color: #e74c3c;">加载数据失败，请检查控制台</p>';
+            }
         }
         
         // 渲染表格函数
@@ -393,7 +380,7 @@
             
             if (searchTerm === '') {
                 renderTable(allData);
-                statusText.textContent = `已加载 ${csvFiles.length} 个文件，共 ${allData.length} 条记录`;
+                statusText.textContent = `已加载 ${allData.length} 条元器件记录`;
                 return;
             }
             
@@ -408,10 +395,8 @@
             statusText.textContent = `找到 ${filteredData.length} 条匹配记录`;
         });
         
-        // 页面加载完成后自动加载所有CSV文件
-        window.addEventListener('DOMContentLoaded', () => {
-            loadAllCSVFiles();
-        });
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
