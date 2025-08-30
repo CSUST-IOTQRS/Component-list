@@ -285,7 +285,8 @@
         
         let allData = [];
         
-        // 预定义的CSV文件列表
+        // 重要：修改点1 - 更新为您的CSV文件列表
+        // 请将下面的数组替换为您仓库中实际的CSV文件名
         const csvFiles = [
             '电感-磁珠.CSV',
             '电阻.CSV',
@@ -301,10 +302,12 @@
         function loadAllCSVFiles() {
             const promises = csvFiles.map(file => {
                 return new Promise((resolve, reject) => {
-                    // 在实际应用中，这里应该是GitHub raw内容的URL
-                    // 例如: `https://raw.githubusercontent.com/用户名/仓库名/主分支/${file}`
-                    // 这里我们使用相对路径
-                    Papa.parse(file, {
+                    // 重要：修改点2 - 更新为您的GitHub仓库路径
+                    // 格式：https://raw.githubusercontent.com/用户名/仓库名/分支名/文件路径
+                    // 例如：https://raw.githubusercontent.com/yourusername/yourrepo/main/components/${file}
+                    const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/${file}`;
+                    
+                    Papa.parse(fileUrl, {
                         download: true,
                         header: true,
                         skipEmptyLines: true,
@@ -360,6 +363,8 @@
             
             data.forEach(row => {
                 const tr = document.createElement('tr');
+                // 重要：修改点3 - 确保列名与您的CSV文件匹配
+                // 如果您的CSV列名不同，请修改下面的属性名
                 tr.innerHTML = `
                     <td>${row['元器件名称'] || '-'}</td>
                     <td>${row['数值'] || '-'}</td>
@@ -385,6 +390,7 @@
             }
             
             const filteredData = allData.filter(row => 
+                // 重要：修改点4 - 确保列名与您的CSV文件匹配
                 (row['元器件名称'] && row['元器件名称'].toLowerCase().includes(searchTerm)) ||
                 (row['数值'] && row['数值'].toLowerCase().includes(searchTerm)) ||
                 (row['封装'] && row['封装'].toLowerCase().includes(searchTerm)) ||
