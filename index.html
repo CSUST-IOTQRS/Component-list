@@ -1,92 +1,240 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>元器件库存检索</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元器件库存检索系统</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 2rem; }
-        #search { padding: 0.5rem; width: 300px; margin-bottom: 1rem; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
-        th { background-color: #f4f4f4; }
-        tr:hover { background-color: #f0f0f0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            margin-top: 30px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .description {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .search-box {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        #search {
+            padding: 14px 20px;
+            width: 100%;
+            max-width: 500px;
+            border: 2px solid #ddd;
+            border-radius: 30px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #search:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        #search::placeholder {
+            color: #bbb;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        th:first-child {
+            border-top-left-radius: 8px;
+        }
+
+        th:last-child {
+            border-top-right-radius: 8px;
+        }
+
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .emoji-header {
+            font-weight: normal;
+            margin-right: 6px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #95a5a6;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                width: 95%;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>元器件库存检索</h1>
-    <input type="text" id="search" placeholder="搜索元器件编号、名称、型号、描述...">
-    <table id="table">
-        <thead>
-            <tr>
-                <th>Part_ID</th>
-                <th>Part_Name</th>
-                <th>Description</th>
-                <th>Manufacturer</th>
-                <th>MPN</th>
-                <th>Category</th>
-                <th>Value</th>
-                <th>Package</th>
-                <th>Quantity</th>
-                <th>Min_Stock</th>
-                <th>Supplier</th>
-                <th>Datasheet_Link</th>
-            </tr>
-        </thead>
-        <tbody id="tbody">
-            <!-- 数据将通过JS填充 -->
-        </tbody>
-    </table>
+
+    <div class="container">
+        <header>
+            <h1>🔍 元器件库存检索系统</h1>
+            <p class="description">快速查找您的元器件库存信息</p>
+        </header>
+
+        <div class="search-box">
+            <input type="text" id="search" placeholder="输入关键词搜索（名称、数值、封装...）">
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th><span class="emoji-header">💡</span>元器件名称</th>
+                        <th><span class="emoji-header">🔢</span>数值</th>
+                        <th><span class="emoji-header">📦</span>封装</th>
+                        <th><span class="emoji-header">🧮</span>数量</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <!-- 数据将通过JS动态填充 -->
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 30px; color: #7f8c8d;">
+                            正在加载元器件数据...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2023 元器件库存管理系统</p>
+    </footer>
 
     <script>
         // 使用 Papa Parse 加载并解析 CSV 文件
-        Papa.parse('./components.csv', { 
+        // 请确保您的CSV文件包含以下四列：元器件名称,数值,封装,数量
+        Papa.parse('./components.csv', {
             download: true,
             header: true,
+            skipEmptyLines: true,
             complete: function(results) {
-                const data = results.data; // 解析后的数据数组
+                const data = results.data;
                 const tbody = document.getElementById('tbody');
                 const searchInput = document.getElementById('search');
 
-                // 初始渲染表格
-                renderTable(data);
-
-                // 为搜索框添加输入监听事件
-                searchInput.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase();
-                    const filteredData = data.filter(row => 
-                        row.Part_ID.toLowerCase().includes(searchTerm) ||
-                        row.Part_Name.toLowerCase().includes(searchTerm) ||
-                        (row.Description && row.Description.toLowerCase().includes(searchTerm)) ||
-                        (row.Manufacturer && row.Manufacturer.toLowerCase().includes(searchTerm)) ||
-                        (row.MPN && row.MPN.toLowerCase().includes(searchTerm)) ||
-                        (row.Category && row.Category.toLowerCase().includes(searchTerm))
-                        // 可以根据需要添加其他搜索字段
-                    );
-                    renderTable(filteredData);
-                });
-
+                // 初始渲染表格函数
                 function renderTable(dataToRender) {
                     tbody.innerHTML = ''; // 清空表格
+
+                    if (dataToRender.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 30px; color: #e74c3c;">未找到匹配的元器件</td></tr>';
+                        return;
+                    }
+
                     dataToRender.forEach(row => {
                         const tr = document.createElement('tr');
-                        // 遍历表头对应的字段创建单元格
                         tr.innerHTML = `
-                            <td>${row.Part_ID || ''}</td>
-                            <td>${row.Part_Name || ''}</td>
-                            <td>${row.Description || ''}</td>
-                            <td>${row.Manufacturer || ''}</td>
-                            <td>${row.MPN || ''}</td>
-                            <td>${row.Category || ''}</td>
-                            <td>${row.Value || ''}</td>
-                            <td>${row.Package || ''}</td>
-                            <td>${row.Quantity || ''}</td>
-                            <td>${row.Min_Stock || ''}</td>
-                            <td>${row.Supplier || ''}</td>
-                            <td>${row.Datasheet_Link ? `<a href="${row.Datasheet_Link}" target="_blank">Datasheet</a>` : ''}</td>
+                            <td>${row['元器件名称'] || '-'}</td>
+                            <td>${row['数值'] || '-'}</td>
+                            <td>${row['封装'] || '-'}</td>
+                            <td>${row['数量'] || '0'}</td>
                         `;
                         tbody.appendChild(tr);
                     });
                 }
+
+                // 首次加载渲染所有数据
+                renderTable(data);
+
+                // 为搜索框添加输入监听事件
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.trim().toLowerCase();
+                    
+                    if (searchTerm === '') {
+                        renderTable(data);
+                        return;
+                    }
+
+                    const filteredData = data.filter(row => 
+                        (row['元器件名称'] && row['元器件名称'].toLowerCase().includes(searchTerm)) ||
+                        (row['数值'] && row['数值'].toLowerCase().includes(searchTerm)) ||
+                        (row['封装'] && row['封装'].toLowerCase().includes(searchTerm)) ||
+                        (row['数量'] && row['数量'].toString().includes(searchTerm))
+                    );
+
+                    renderTable(filteredData);
+                });
+            },
+            error: function(err) {
+                document.getElementById('tbody').innerHTML = 
+                    '<tr><td colspan="4" style="text-align: center; padding: 30px; color: #e74c3c;">错误：无法加载数据文件。请确保 components.csv 文件存在。</td></tr>';
+                console.error('CSV加载错误:', err);
             }
         });
     </script>
