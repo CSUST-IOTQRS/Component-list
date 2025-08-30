@@ -162,6 +162,7 @@
             padding: 0;
             max-height: 200px;
             overflow-y: auto;
+            display: none; /* 默认收起 */
         }
         
         .file-status-item {
@@ -389,7 +390,7 @@
                 <i class="far fa-clock"></i>
                 <span id="current-time">正在加载时间...</span>
             </div>
-            <p class="description">增强版 - 自动加载所有CSV文件，支持全局搜索</p>
+            <p class="description">自动加载所有CSV文件，支持全局搜索</p>
         </header>
         
         <div class="controls">
@@ -418,14 +419,14 @@
             <div class="file-status-container" id="file-status-container">
                 <div class="file-status-header">
                     <h3><i class="fas fa-file-alt"></i> 文件加载状态 <span class="error-count" id="error-count">异常文件: 0</span></h3>
-                    <button class="toggle-status" id="toggle-status">收起</button>
+                    <button class="toggle-status" id="toggle-status">展开</button>
                 </div>
                 <ul class="file-status-list" id="file-status-list">
                     <!-- 文件状态将通过JS动态填充 -->
                 </ul>
                 <div class="file-status-help" id="file-status-help">
                     <i class="fas fa-info-circle"></i> 
-                    如果一直未能加载出异常文件，请到仓库的CSV_Prj目录下手动查找相关CSV文件
+                    如果一直未能正常加载出文件，请到仓库的CSV_Prj目录下手动查找相关CSV文件
                 </div>
             </div>
             
@@ -453,7 +454,7 @@
     </div>
 
     <footer>
-        <p>© 2023 物联网实验室嵌入式部门 | 基于GitHub Pages构建</p>
+        <p>© 2025 物联网实验室嵌入式部门 | 基于GitHub Pages构建 | DeepSeek完成Web代码</p>
     </footer>
 
     <script>
@@ -713,8 +714,10 @@
                 fileStatusList.appendChild(li);
             });
             
-            // 显示文件状态容器
+            // 显示文件状态容器，但保持列表收起状态
             fileStatusContainer.style.display = 'block';
+            fileStatusList.style.display = 'none'; // 默认收起
+            toggleStatusBtn.textContent = '展开'; // 按钮显示为展开
         }
         
         // 切换状态显示
