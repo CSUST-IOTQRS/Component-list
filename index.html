@@ -328,7 +328,7 @@
             for (const file of csvFiles) {
                 try {
                     // 使用GitHub raw内容的URL
-                    const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/${file}`;
+                    const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/CSV_Prj${file}`;
                     
                     // 获取CSV文件内容
                     const response = await fetch(fileUrl);
