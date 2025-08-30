@@ -108,6 +108,98 @@
             padding: 20px;
         }
         
+        /* 文件状态展示区域 */
+        .file-status-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: none; /* 初始隐藏 */
+        }
+        
+        .file-status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .file-status-header h3 {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-status-header h3 i {
+            margin-right: 10px;
+        }
+        
+        .toggle-status {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .file-status-list {
+            list-style-type: none;
+            padding: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .file-status-item {
+            padding: 10px;
+            border-bottom: 1px solid #eaeaea;
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-status-icon {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .status-success {
+            color: #27ae60;
+        }
+        
+        .status-error {
+            color: #e74c3c;
+        }
+        
+        .file-name {
+            flex-grow: 1;
+            font-weight: 500;
+        }
+        
+        .record-count {
+            background: #e0e0e0;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-left: 10px;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            padding-left: 30px;
+            font-style: italic;
+        }
+        
         .table-container {
             overflow-x: auto;
             border-radius: 8px;
@@ -255,6 +347,16 @@
             h1 {
                 font-size: 1.8rem;
             }
+            
+            .file-status-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .record-count {
+                margin-left: 0;
+                margin-top: 5px;
+            }
         }
     </style>
 </head>
@@ -290,6 +392,17 @@
                 <div class="file-progress" id="file-progress">
                     <!-- 文件加载状态将通过JS动态填充 -->
                 </div>
+            </div>
+            
+            <!-- 文件加载状态展示区域 -->
+            <div class="file-status-container" id="file-status-container">
+                <div class="file-status-header">
+                    <h3><i class="fas fa-file-alt"></i> 文件加载状态</h3>
+                    <button class="toggle-status" id="toggle-status">收起</button>
+                </div>
+                <ul class="file-status-list" id="file-status-list">
+                    <!-- 文件状态将通过JS动态填充 -->
+                </ul>
             </div>
             
             <div class="table-container" id="table-container" style="display: none;">
@@ -348,9 +461,13 @@
         const fileProgress = document.getElementById('file-progress');
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
+        const fileStatusContainer = document.getElementById('file-status-container');
+        const fileStatusList = document.getElementById('file-status-list');
+        const toggleStatusBtn = document.getElementById('toggle-status');
         
         let allData = [];
         let csvFiles = [];
+        let fileStatuses = []; // 存储每个文件加载状态
         
         // 为每个文件创建加载状态显示
         function createFileProgressElements() {
@@ -365,7 +482,7 @@
         }
         
         // 更新文件加载状态
-        function updateFileStatus(filename, status, message = '') {
+        function updateFileStatus(filename, status, message = '', recordCount = 0) {
             const badge = document.getElementById(`file-${filename.replace(/\./g, '-')}`);
             if (badge) {
                 badge.className = `file-badge ${status}`;
@@ -378,6 +495,14 @@
                     badge.innerHTML = `<i class="fas fa-times"></i> ${filename}`;
                     if (message) badge.title = message;
                 }
+            }
+            
+            // 更新文件状态数组
+            const existingIndex = fileStatuses.findIndex(item => item.filename === filename);
+            if (existingIndex !== -1) {
+                fileStatuses[existingIndex] = { filename, status, message, recordCount };
+            } else {
+                fileStatuses.push({ filename, status, message, recordCount });
             }
         }
         
@@ -514,6 +639,53 @@
             }
         }
         
+        // 显示文件加载状态
+        function displayFileStatuses() {
+            fileStatusList.innerHTML = '';
+            
+            fileStatuses.forEach(status => {
+                const li = document.createElement('li');
+                li.className = 'file-status-item';
+                
+                let iconClass = 'file-status-icon status-success';
+                let icon = '<i class="fas fa-check-circle"></i>';
+                
+                if (status.status === 'error') {
+                    iconClass = 'file-status-icon status-error';
+                    icon = '<i class="fas fa-exclamation-circle"></i>';
+                }
+                
+                li.innerHTML = `
+                    <div class="${iconClass}">${icon}</div>
+                    <div class="file-name">${status.filename}</div>
+                    <div class="record-count">${status.recordCount} 条记录</div>
+                `;
+                
+                if (status.status === 'error' && status.message) {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'error-message';
+                    errorMsg.textContent = status.message;
+                    li.appendChild(errorMsg);
+                }
+                
+                fileStatusList.appendChild(li);
+            });
+            
+            // 显示文件状态容器
+            fileStatusContainer.style.display = 'block';
+        }
+        
+        // 切换状态显示
+        toggleStatusBtn.addEventListener('click', function() {
+            if (fileStatusList.style.display === 'none') {
+                fileStatusList.style.display = 'block';
+                toggleStatusBtn.textContent = '收起';
+            } else {
+                fileStatusList.style.display = 'none';
+                toggleStatusBtn.textContent = '展开';
+            }
+        });
+        
         // 并行加载所有CSV文件
         async function loadAllCSVFiles() {
             let loadedCount = 0;
@@ -527,13 +699,13 @@
                     const data = await loadCSVFile(file);
                     loadedCount++;
                     updateProgress(loadedCount, totalFiles);
-                    updateFileStatus(file, 'success');
+                    updateFileStatus(file, 'success', '', data.length);
                     return data;
                 } catch (error) {
                     console.error(`加载文件 ${file} 时出错:`, error);
                     loadedCount++;
                     updateProgress(loadedCount, totalFiles);
-                    updateFileStatus(file, 'error', error.message);
+                    updateFileStatus(file, 'error', error.message, 0);
                     return [];
                 }
             });
@@ -555,6 +727,9 @@
                 
                 // 然后加载所有CSV文件
                 allData = await loadAllCSVFiles();
+                
+                // 显示文件加载状态
+                displayFileStatuses();
                 
                 if (allData.length === 0) {
                     statusText.textContent = "错误: 没有加载到任何数据";
