@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub元器件检索系统</title>
+    <title>物联网实验室元器件管理系统</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -208,7 +208,7 @@
 
     <div class="container">
         <header>
-            <h1><i class="fas fa-search"></i> GitHub元器件检索系统</h1>
+            <h1><i class="fas fa-search"></i> 物联网实验室元器件管理系统</h1>
             <div class="time-display">
                 <i class="far fa-clock"></i>
                 <span id="current-time">正在加载时间...</span>
@@ -219,7 +219,7 @@
         <div class="controls">
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" id="search" placeholder="输入关键词搜索元器件...">
+                <input type="text" id="search" placeholder="输入元器件名称、数值、封装或数量进行搜索...">
             </div>
         </div>
         
@@ -253,7 +253,7 @@
     </div>
 
     <footer>
-        <p>© 2023 元器件CSV检索系统 | 基于GitHub Pages构建</p>
+        <p>© 2023 物联网实验室嵌入式部门 | 基于GitHub Pages构建</p>
     </footer>
 
     <script>
@@ -285,26 +285,24 @@
         
         let allData = [];
         
-        // 重要：修改点1 - 更新为您的CSV文件列表
-        // 请将下面的数组替换为您仓库中实际的CSV文件名
+        // 根据您的GitHub仓库中的CSV文件列表
         const csvFiles = [
+            'LED.CSV',
+            '二极管-三极管-MOS管.CSV',
+            '其他.CSV',
+            '开关-按键.CSV',
+            '接口座子-排针-排母.CSV',
+            '电容.CSV',
             '电感-磁珠.CSV',
             '电阻.CSV',
-            'LED.CSV',
-            '电容.CSV',
-            '集成IC.CSV',
-            '开关-按键.CSV',
-            '二极管-三极管-MOS.CSV',
-            '接口座子-排针-排母.CSV'
+            '集成IC.CSV'
         ];
         
         // 加载所有CSV文件
         function loadAllCSVFiles() {
             const promises = csvFiles.map(file => {
                 return new Promise((resolve, reject) => {
-                    // 重要：修改点2 - 更新为您的GitHub仓库路径
-                    // 格式：https://raw.githubusercontent.com/用户名/仓库名/分支名/文件路径
-                    // 例如：https://raw.githubusercontent.com/yourusername/yourrepo/main/components/${file}
+                    // 使用GitHub raw内容的URL
                     const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/${file}`;
                     
                     Papa.parse(fileUrl, {
@@ -312,7 +310,11 @@
                         header: true,
                         skipEmptyLines: true,
                         complete: function(results) {
-                            resolve(results.data);
+                            // 过滤掉空行和无效数据
+                            const validData = results.data.filter(item => 
+                                item.元器件名称 && item.元器件名称.trim() !== ''
+                            );
+                            resolve(validData);
                         },
                         error: function(error) {
                             console.error(`加载文件 ${file} 时出错:`, error);
@@ -328,6 +330,8 @@
         // 初始化加载数据
         async function init() {
             try {
+                statusText.textContent = "开始加载CSV文件数据...";
+                
                 const results = await loadAllCSVFiles();
                 
                 // 合并所有文件的数据
@@ -335,6 +339,7 @@
                 
                 if (allData.length === 0) {
                     statusText.textContent = "未找到任何元器件数据";
+                    loadingElement.innerHTML = '<p style="color: #e74c3c;">未找到有效的元器件数据，请检查CSV文件格式</p>';
                     return;
                 }
                 
@@ -348,7 +353,7 @@
             } catch (error) {
                 console.error("加载数据时出错:", error);
                 statusText.textContent = "加载数据时出错，请检查控制台";
-                loadingElement.innerHTML = '<p style="color: #e74c3c;">加载数据失败，请检查控制台</p>';
+                loadingElement.innerHTML = '<p style="color: #e74c3c;">加载数据失败，请检查控制台详细信息</p>';
             }
         }
         
@@ -363,8 +368,6 @@
             
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                // 重要：修改点3 - 确保列名与您的CSV文件匹配
-                // 如果您的CSV列名不同，请修改下面的属性名
                 tr.innerHTML = `
                     <td>${row['元器件名称'] || '-'}</td>
                     <td>${row['数值'] || '-'}</td>
@@ -390,7 +393,6 @@
             }
             
             const filteredData = allData.filter(row => 
-                // 重要：修改点4 - 确保列名与您的CSV文件匹配
                 (row['元器件名称'] && row['元器件名称'].toLowerCase().includes(searchTerm)) ||
                 (row['数值'] && row['数值'].toLowerCase().includes(searchTerm)) ||
                 (row['封装'] && row['封装'].toLowerCase().includes(searchTerm)) ||
