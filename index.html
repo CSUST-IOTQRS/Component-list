@@ -138,6 +138,15 @@
             margin-right: 10px;
         }
         
+        .error-count {
+            background: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+        
         .toggle-status {
             background: #3498db;
             color: white;
@@ -198,6 +207,17 @@
             margin-top: 5px;
             padding-left: 30px;
             font-style: italic;
+        }
+        
+        .file-status-help {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+            font-size: 0.9rem;
+            color: #856404;
+            display: none; /* 初始隐藏 */
         }
         
         .table-container {
@@ -397,12 +417,16 @@
             <!-- 文件加载状态展示区域 -->
             <div class="file-status-container" id="file-status-container">
                 <div class="file-status-header">
-                    <h3><i class="fas fa-file-alt"></i> 文件加载状态</h3>
+                    <h3><i class="fas fa-file-alt"></i> 文件加载状态 <span class="error-count" id="error-count">异常文件: 0</span></h3>
                     <button class="toggle-status" id="toggle-status">收起</button>
                 </div>
                 <ul class="file-status-list" id="file-status-list">
                     <!-- 文件状态将通过JS动态填充 -->
                 </ul>
+                <div class="file-status-help" id="file-status-help">
+                    <i class="fas fa-info-circle"></i> 
+                    如果一直未能加载出异常文件，请到仓库的CSV_Prj目录下手动查找相关CSV文件
+                </div>
             </div>
             
             <div class="table-container" id="table-container" style="display: none;">
@@ -464,6 +488,8 @@
         const fileStatusContainer = document.getElementById('file-status-container');
         const fileStatusList = document.getElementById('file-status-list');
         const toggleStatusBtn = document.getElementById('toggle-status');
+        const errorCountElement = document.getElementById('error-count');
+        const fileStatusHelp = document.getElementById('file-status-help');
         
         let allData = [];
         let csvFiles = [];
@@ -503,6 +529,22 @@
                 fileStatuses[existingIndex] = { filename, status, message, recordCount };
             } else {
                 fileStatuses.push({ filename, status, message, recordCount });
+            }
+            
+            // 更新异常文件数量
+            updateErrorCount();
+        }
+        
+        // 更新异常文件数量
+        function updateErrorCount() {
+            const errorCount = fileStatuses.filter(status => status.status === 'error').length;
+            errorCountElement.textContent = `异常文件: ${errorCount}`;
+            
+            // 如果有异常文件，显示提示信息
+            if (errorCount > 0) {
+                fileStatusHelp.style.display = 'block';
+            } else {
+                fileStatusHelp.style.display = 'none';
             }
         }
         
