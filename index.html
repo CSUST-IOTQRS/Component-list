@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>元器件库存检索</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 2rem; }
+        #search { padding: 0.5rem; width: 300px; margin-bottom: 1rem; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+        th { background-color: #f4f4f4; }
+        tr:hover { background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>元器件库存检索</h1>
+    <input type="text" id="search" placeholder="搜索元器件编号、名称、型号、描述...">
+    <table id="table">
+        <thead>
+            <tr>
+                <th>Part_ID</th>
+                <th>Part_Name</th>
+                <th>Description</th>
+                <th>Manufacturer</th>
+                <th>MPN</th>
+                <th>Category</th>
+                <th>Value</th>
+                <th>Package</th>
+                <th>Quantity</th>
+                <th>Min_Stock</th>
+                <th>Supplier</th>
+                <th>Datasheet_Link</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+            <!-- 数据将通过JS填充 -->
+        </tbody>
+    </table>
+
+    <script>
+        // 使用 Papa Parse 加载并解析 CSV 文件
+        Papa.parse('./components.csv', { 
+            download: true,
+            header: true,
+            complete: function(results) {
+                const data = results.data; // 解析后的数据数组
+                const tbody = document.getElementById('tbody');
+                const searchInput = document.getElementById('search');
+
+                // 初始渲染表格
+                renderTable(data);
+
+                // 为搜索框添加输入监听事件
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const filteredData = data.filter(row => 
+                        row.Part_ID.toLowerCase().includes(searchTerm) ||
+                        row.Part_Name.toLowerCase().includes(searchTerm) ||
+                        (row.Description && row.Description.toLowerCase().includes(searchTerm)) ||
+                        (row.Manufacturer && row.Manufacturer.toLowerCase().includes(searchTerm)) ||
+                        (row.MPN && row.MPN.toLowerCase().includes(searchTerm)) ||
+                        (row.Category && row.Category.toLowerCase().includes(searchTerm))
+                        // 可以根据需要添加其他搜索字段
+                    );
+                    renderTable(filteredData);
+                });
+
+                function renderTable(dataToRender) {
+                    tbody.innerHTML = ''; // 清空表格
+                    dataToRender.forEach(row => {
+                        const tr = document.createElement('tr');
+                        // 遍历表头对应的字段创建单元格
+                        tr.innerHTML = `
+                            <td>${row.Part_ID || ''}</td>
+                            <td>${row.Part_Name || ''}</td>
+                            <td>${row.Description || ''}</td>
+                            <td>${row.Manufacturer || ''}</td>
+                            <td>${row.MPN || ''}</td>
+                            <td>${row.Category || ''}</td>
+                            <td>${row.Value || ''}</td>
+                            <td>${row.Package || ''}</td>
+                            <td>${row.Quantity || ''}</td>
+                            <td>${row.Min_Stock || ''}</td>
+                            <td>${row.Supplier || ''}</td>
+                            <td>${row.Datasheet_Link ? `<a href="${row.Datasheet_Link}" target="_blank">Datasheet</a>` : ''}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
