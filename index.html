@@ -185,6 +185,50 @@
             to { transform: rotate(360deg); }
         }
         
+        .file-progress {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        .file-badge {
+            background: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .file-badge.success {
+            background: #27ae60;
+        }
+        
+        .file-badge.error {
+            background: #e74c3c;
+        }
+        
+        .progress-container {
+            width: 100%;
+            max-width: 600px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: linear-gradient(to right, #4ca1af, #2c3e50);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
         footer {
             text-align: center;
             padding: 20px;
@@ -213,7 +257,7 @@
                 <i class="far fa-clock"></i>
                 <span id="current-time">正在加载时间...</span>
             </div>
-            <p class="description">自动加载所有CSV文件，支持全局搜索</p>
+            <p class="description">优化版 - 自动加载所有CSV文件，支持全局搜索</p>
         </header>
         
         <div class="controls">
@@ -227,6 +271,12 @@
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <p>正在加载元器件数据...</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+                </div>
+                <div class="file-progress" id="file-progress">
+                    <!-- 文件加载状态将通过JS动态填充 -->
+                </div>
             </div>
             
             <div class="table-container" id="table-container" style="display: none;">
@@ -282,6 +332,8 @@
         const statusText = document.getElementById('status-text');
         const loadingElement = document.getElementById('loading');
         const tableContainer = document.getElementById('table-container');
+        const fileProgress = document.getElementById('file-progress');
+        const progressBar = document.getElementById('progress-bar');
         
         let allData = [];
         
@@ -298,77 +350,115 @@
             '集成IC.CSV'
         ];
         
-        // 自定义CSV解析函数，跳过前两行
-        function parseCSVWithSkippedRows(csvText, skipRows = 2) {
-            const lines = csvText.split('\n');
-            // 跳过指定行数
-            const dataLines = lines.slice(skipRows);
-            // 重新组合为CSV文本
-            const cleanedCSV = dataLines.join('\n');
-            
-            return new Promise((resolve) => {
-                Papa.parse(cleanedCSV, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        resolve(results.data);
-                    },
-                    error: function(error) {
-                        console.error("解析CSV时出错:", error);
-                        resolve([]);
-                    }
-                });
+        // 为每个文件创建加载状态显示
+        function createFileProgressElements() {
+            fileProgress.innerHTML = '';
+            csvFiles.forEach(file => {
+                const badge = document.createElement('div');
+                badge.className = 'file-badge';
+                badge.id = `file-${file.replace(/\./g, '-')}`;
+                badge.innerHTML = `<i class="fas fa-sync-alt"></i> ${file}`;
+                fileProgress.appendChild(badge);
             });
         }
         
-        // 加载所有CSV文件
-        async function loadAllCSVFiles() {
-            const allData = [];
-            
-            for (const file of csvFiles) {
-                try {
-                    // 使用GitHub raw内容的URL
-                    const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/CSV_Prj${file}`;
-                    
-                    // 获取CSV文件内容
-                    const response = await fetch(fileUrl);
-                    if (!response.ok) {
-                        console.warn(`无法获取文件: ${file}`);
-                        continue;
-                    }
-                    
-                    const csvText = await response.text();
-                    
-                    // 使用自定义解析函数，跳过前两行
-                    const fileData = await parseCSVWithSkippedRows(csvText, 2);
-                    
-                    if (fileData && fileData.length > 0) {
-                        // 过滤掉空行和无效数据
-                        const validData = fileData.filter(item => 
-                            item.元器件名称 && item.元器件名称.trim() !== ''
-                        );
-                        
-                        allData.push(...validData);
-                        console.log(`已加载文件 ${file}, 包含 ${validData.length} 条记录`);
-                    }
-                } catch (error) {
-                    console.error(`加载文件 ${file} 时出错:`, error);
+        // 更新文件加载状态
+        function updateFileStatus(filename, status) {
+            const badge = document.getElementById(`file-${filename.replace(/\./g, '-')}`);
+            if (badge) {
+                badge.className = `file-badge ${status}`;
+                if (status === 'success') {
+                    badge.innerHTML = `<i class="fas fa-check"></i> ${filename}`;
+                } else if (status === 'error') {
+                    badge.innerHTML = `<i class="fas fa-times"></i> ${filename}`;
                 }
             }
+        }
+        
+        // 更新进度条
+        function updateProgressBar(loaded, total) {
+            const percentage = (loaded / total) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+        
+        // 并行加载所有CSV文件
+        async function loadAllCSVFiles() {
+            let loadedCount = 0;
+            const totalFiles = csvFiles.length;
             
-            return allData;
+            const promises = csvFiles.map(async (file) => {
+                try {
+                    // 使用GitHub raw内容的URL，指向CSV_Prj文件夹
+                    const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/CSV_Prj/${file}`;
+                    
+                    // 使用PapaParse直接加载和解析CSV文件
+                    return new Promise((resolve) => {
+                        Papa.parse(fileUrl, {
+                            download: true,
+                            header: true,
+                            skipEmptyLines: true,
+                            complete: function(results) {
+                                loadedCount++;
+                                updateProgressBar(loadedCount, totalFiles);
+                                updateFileStatus(file, 'success');
+                                
+                                // 过滤掉空行和无效数据
+                                const validData = results.data.filter(item => 
+                                    item.元器件名称 && item.元器件名称.trim() !== ''
+                                );
+                                
+                                resolve(validData);
+                            },
+                            error: function(error) {
+                                console.error(`加载文件 ${file} 时出错:`, error);
+                                loadedCount++;
+                                updateProgressBar(loadedCount, totalFiles);
+                                updateFileStatus(file, 'error');
+                                resolve([]);
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error(`加载文件 ${file} 时出错:`, error);
+                    loadedCount++;
+                    updateProgressBar(loadedCount, totalFiles);
+                    updateFileStatus(file, 'error');
+                    return [];
+                }
+            });
+            
+            // 等待所有文件加载完成
+            const results = await Promise.all(promises);
+            
+            // 合并所有文件的数据
+            return results.flat();
         }
         
         // 初始化加载数据
         async function init() {
             try {
                 statusText.textContent = "开始加载CSV文件数据...";
+                createFileProgressElements();
                 
                 allData = await loadAllCSVFiles();
                 
                 if (allData.length === 0) {
-                    statusText.textContent = "未找到任何元器件数据";
-                    loadingElement.innerHTML = '<p style="color: #e74c3c;">未找到有效的元器件数据，请检查CSV文件格式</p>';
+                    statusText.textContent = "错误: 没有加载到任何数据";
+                    loadingElement.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #ffebee; border-radius: 8px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 15px;"></i>
+                            <h3>数据加载失败</h3>
+                            <p style="margin: 10px 0;">未能从服务器获取任何元器件数据，请检查：</p>
+                            <ul style="text-align: left; max-width: 500px; margin: 0 auto;">
+                                <li>CSV文件是否存在于仓库中</li>
+                                <li>文件路径是否正确</li>
+                                <li>文件格式是否符合要求</li>
+                            </ul>
+                            <p style="margin-top: 20px; color: #7f8c8d;">
+                                <i class="fas fa-info-circle"></i> 请查看上方文件状态指示器获取具体错误信息
+                            </p>
+                        </div>
+                    `;
                     return;
                 }
                 
@@ -381,8 +471,14 @@
                 tableContainer.style.display = 'block';
             } catch (error) {
                 console.error("加载数据时出错:", error);
-                statusText.textContent = "加载数据时出错，请检查控制台";
-                loadingElement.innerHTML = '<p style="color: #e74c3c;">加载数据失败，请检查控制台详细信息</p>';
+                loadingElement.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #ffebee; border-radius: 8px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 15px;"></i>
+                        <h3>系统错误</h3>
+                        <p>${error.message}</p>
+                        <p style="margin-top: 10px;">请检查控制台获取详细信息</p>
+                    </div>
+                `;
             }
         }
         
