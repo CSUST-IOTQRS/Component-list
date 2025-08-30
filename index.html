@@ -191,7 +191,6 @@
             gap: 10px;
             justify-content: center;
             margin-top: 15px;
-            width: 100%;
         }
         
         .file-badge {
@@ -215,18 +214,25 @@
         
         .progress-container {
             width: 100%;
-            max-width: 600px;
-            background: #f0f0f0;
+            max-width: 500px;
+            background: #e0e0e0;
             border-radius: 10px;
-            margin: 15px 0;
+            margin: 20px 0;
             overflow: hidden;
         }
         
         .progress-bar {
             height: 10px;
-            background: linear-gradient(to right, #4ca1af, #2c3e50);
+            background: linear-gradient(to right, #4caf50, #8bc34a);
             border-radius: 10px;
             transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
         }
         
         footer {
@@ -271,9 +277,12 @@
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <p>正在加载元器件数据...</p>
+                
                 <div class="progress-container">
                     <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
                 </div>
+                <div class="progress-text" id="progress-text">0% (0/9)</div>
+                
                 <div class="file-progress" id="file-progress">
                     <!-- 文件加载状态将通过JS动态填充 -->
                 </div>
@@ -334,6 +343,7 @@
         const tableContainer = document.getElementById('table-container');
         const fileProgress = document.getElementById('file-progress');
         const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
         
         let allData = [];
         
@@ -376,9 +386,60 @@
         }
         
         // 更新进度条
-        function updateProgressBar(loaded, total) {
-            const percentage = (loaded / total) * 100;
+        function updateProgress(loaded, total) {
+            const percentage = Math.round((loaded / total) * 100);
             progressBar.style.width = `${percentage}%`;
+            progressText.textContent = `${percentage}% (${loaded}/${total})`;
+        }
+        
+        // 自定义CSV解析函数 - 跳过前两行
+        function parseCSVWithSkippedRows(csvText) {
+            // 将CSV文本分割成行
+            const lines = csvText.split('\n');
+            
+            // 跳过前两行（表格标题）
+            const dataLines = lines.slice(2);
+            
+            // 重新组合为CSV文本
+            const processedCSV = dataLines.join('\n');
+            
+            // 使用PapaParse解析处理后的CSV
+            const results = Papa.parse(processedCSV, {
+                header: true,
+                skipEmptyLines: true
+            });
+            
+            return results.data;
+        }
+        
+        // 加载单个CSV文件
+        async function loadCSVFile(file) {
+            try {
+                // 使用GitHub raw内容的URL，指向CSV_Prj文件夹
+                const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/CSV_Prj/${file}`;
+                
+                // 使用fetch获取CSV文件内容
+                const response = await fetch(fileUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                
+                // 使用自定义解析函数跳过前两行
+                const data = parseCSVWithSkippedRows(csvText);
+                
+                // 过滤掉空行和无效数据
+                const validData = data.filter(item => 
+                    item.元器件名称 && item.元器件名称.trim() !== ''
+                );
+                
+                return validData;
+            } catch (error) {
+                console.error(`加载文件 ${file} 时出错:`, error);
+                return [];
+            }
         }
         
         // 并行加载所有CSV文件
@@ -386,42 +447,20 @@
             let loadedCount = 0;
             const totalFiles = csvFiles.length;
             
+            createFileProgressElements();
+            updateProgress(0, totalFiles);
+            
             const promises = csvFiles.map(async (file) => {
                 try {
-                    // 使用GitHub raw内容的URL，指向CSV_Prj文件夹
-                    const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/CSV_Prj/${file}`;
-                    
-                    // 使用PapaParse直接加载和解析CSV文件
-                    return new Promise((resolve) => {
-                        Papa.parse(fileUrl, {
-                            download: true,
-                            header: true,
-                            skipEmptyLines: true,
-                            complete: function(results) {
-                                loadedCount++;
-                                updateProgressBar(loadedCount, totalFiles);
-                                updateFileStatus(file, 'success');
-                                
-                                // 过滤掉空行和无效数据
-                                const validData = results.data.filter(item => 
-                                    item.元器件名称 && item.元器件名称.trim() !== ''
-                                );
-                                
-                                resolve(validData);
-                            },
-                            error: function(error) {
-                                console.error(`加载文件 ${file} 时出错:`, error);
-                                loadedCount++;
-                                updateProgressBar(loadedCount, totalFiles);
-                                updateFileStatus(file, 'error');
-                                resolve([]);
-                            }
-                        });
-                    });
+                    const data = await loadCSVFile(file);
+                    loadedCount++;
+                    updateProgress(loadedCount, totalFiles);
+                    updateFileStatus(file, 'success');
+                    return data;
                 } catch (error) {
                     console.error(`加载文件 ${file} 时出错:`, error);
                     loadedCount++;
-                    updateProgressBar(loadedCount, totalFiles);
+                    updateProgress(loadedCount, totalFiles);
                     updateFileStatus(file, 'error');
                     return [];
                 }
@@ -438,7 +477,6 @@
         async function init() {
             try {
                 statusText.textContent = "开始加载CSV文件数据...";
-                createFileProgressElements();
                 
                 allData = await loadAllCSVFiles();
                 
@@ -450,9 +488,11 @@
                             <h3>数据加载失败</h3>
                             <p style="margin: 10px 0;">未能从服务器获取任何元器件数据，请检查：</p>
                             <ul style="text-align: left; max-width: 500px; margin: 0 auto;">
-                                <li>CSV文件是否存在于仓库中</li>
+                                <li>CSV文件是否存在于CSV_Prj文件夹中</li>
                                 <li>文件路径是否正确</li>
-                                <li>文件格式是否符合要求</li>
+                                <li>文件格式是否符合要求（UTF-8编码，逗号分隔）</li>
+                                <li>CSV文件是否有前两行表格标题</li>
+                                <li>网络连接是否正常</li>
                             </ul>
                             <p style="margin-top: 20px; color: #7f8c8d;">
                                 <i class="fas fa-info-circle"></i> 请查看上方文件状态指示器获取具体错误信息
