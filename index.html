@@ -85,7 +85,7 @@
             background: white;
             border-radius: 25px;
             padding: 5px 15px;
-            box-shadow: 极速模式 3px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 500px;
         }
@@ -125,7 +125,7 @@
         
         th {
             background-color: #3498db;
-           极速模式 color: white;
+            color: white;
             padding: 15px 12px;
             text-align: left;
             font-weight: 600;
@@ -142,7 +142,7 @@
         }
         
         td {
-            padding: 14极速模式px 12px;
+            padding: 14px 12px;
             border-bottom: 1px solid #eaeaea;
         }
         
@@ -185,29 +185,6 @@
             to { transform: rotate(360deg); }
         }
         
-        .progress-container {
-            width: 100%;
-            max-width: 500px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            height: 10px;
-            background: linear-gradient(to right, #4caf50, #8bc34a);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        }
-        
-        .progress-text {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: #7f8c8d;
-        }
-        
         .file-progress {
             display: flex;
             flex-wrap: wrap;
@@ -231,8 +208,35 @@
             background: #27ae60;
         }
         
+        .file-badge.warning {
+            background: #f39c12;
+        }
+        
         .file-badge.error {
             background: #e74c3c;
+        }
+        
+        .progress-container {
+            width: 100%;
+            max-width: 500px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: linear-gradient(to right, #4caf50, #8bc34a);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
         }
         
         footer {
@@ -263,7 +267,7 @@
                 <i class="far fa-clock"></i>
                 <span id="current-time">正在加载时间...</span>
             </div>
-            <p class="description">全局搜索版 - 自动发现并加载所有CSV文件</p>
+            <p class="description">增强版 - 自动加载所有CSV文件，支持全局搜索</p>
         </header>
         
         <div class="controls">
@@ -275,8 +279,8 @@
         
         <div class="main-content">
             <div class="loading" id="loading">
-                <div class极速模式="spinner"></div>
-                <p>正在发现并加载CSV文件...</p>
+                <div class="spinner"></div>
+                <p>正在加载元器件数据...</p>
                 
                 <div class="progress-container">
                     <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
@@ -361,14 +365,18 @@
         }
         
         // 更新文件加载状态
-        function updateFileStatus(filename, status, errorMsg = '') {
+        function updateFileStatus(filename, status, message = '') {
             const badge = document.getElementById(`file-${filename.replace(/\./g, '-')}`);
             if (badge) {
                 badge.className = `file-badge ${status}`;
                 if (status === 'success') {
                     badge.innerHTML = `<i class="fas fa-check"></i> ${filename}`;
+                } else if (status === 'warning') {
+                    badge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${filename}`;
+                    if (message) badge.title = message;
                 } else if (status === 'error') {
-                    badge.innerHTML = `<i class="fas fa-times"></i> ${filename} (${errorMsg || '加载失败'})`;
+                    badge.innerHTML = `<i class="fas fa-times"></i> ${filename}`;
+                    if (message) badge.title = message;
                 }
             }
         }
@@ -380,8 +388,67 @@
             progressText.textContent = `${percentage}% (${loaded}/${total})`;
         }
         
+        // 获取CSV文件列表
+        async function getCSVFilesFromGitHub() {
+            try {
+                statusText.textContent = "正在获取CSV文件列表...";
+                
+                // 使用GitHub API获取CSV_Prj文件夹内容
+                const apiUrl = 'https://api.github.com/repos/CSUST-IOTQRS/Component-list/contents/CSV_Prj';
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`GitHub API请求失败: ${response.status}`);
+                }
+                
+                const contents = await response.json();
+                
+                // 过滤出CSV文件
+                csvFiles = contents
+                    .filter(item => item.name.toLowerCase().endsWith('.csv'))
+                    .map(item => item.name);
+                
+                if (csvFiles.length === 0) {
+                    statusText.textContent = "未找到CSV文件，使用默认文件列表";
+                    // 使用默认文件列表作为后备
+                    csvFiles = [
+                        'LED.CSV',
+                        '二极管-三极管-MOS管.CSV',
+                        '其他.CSV',
+                        '开关-按键.CSV',
+                        '接口座子-排针-排母.CSV',
+                        '电容.CSV',
+                        '电感-磁珠.CSV',
+                        '电阻.CSV',
+                        '集成IC.CSV'
+                    ];
+                }
+                
+                statusText.textContent = `找到 ${csvFiles.length} 个CSV文件`;
+                return csvFiles;
+            } catch (error) {
+                console.error("获取CSV文件列表时出错:", error);
+                statusText.textContent = "获取文件列表失败，使用默认文件列表";
+                
+                // 使用默认文件列表作为后备
+                csvFiles = [
+                    'LED.CSV',
+                    '二极管-三极管-MOS管.CSV',
+                    '其他.CSV',
+                    '开关-按键.CSV',
+                    '接口座子-排针-排母.CSV',
+                    '电容.CSV',
+                    '电感-磁珠.CSV',
+                    '电阻.CSV',
+                    '集成IC.CSV'
+                ];
+                
+                return csvFiles;
+            }
+        }
+        
         // 自定义CSV解析函数 - 跳过前两行
-        function parseCSVWithSkippedRows(csvText) {
+        function parseCSVWithSkippedRows(csvText, filename) {
             try {
                 // 将CSV文本分割成行
                 const lines = csvText.split('\n');
@@ -396,15 +463,15 @@
                 const results = Papa.parse(processedCSV, {
                     header: true,
                     skipEmptyLines: true,
-                    transform: function(value) {
-                        // 处理可能存在的空格和特殊字符
+                    transform: (value) => {
+                        // 去除字段值的首尾空格
                         return typeof value === 'string' ? value.trim() : value;
                     }
                 });
                 
                 return results.data;
             } catch (error) {
-                console.error('CSV解析错误:', error);
+                console.error(`解析文件 ${filename} 时出错:`, error);
                 return [];
             }
         }
@@ -424,71 +491,26 @@
                 
                 const csvText = await response.text();
                 
-                // 检查文件内容是否有效
+                // 检查文件内容是否为空
                 if (!csvText || csvText.trim().length === 0) {
-                    throw new Error('文件内容为空');
+                    throw new Error("文件内容为空");
                 }
                 
                 // 使用自定义解析函数跳过前两行
-                const data = parseCSVWithSkippedRows(csvText);
+                const data = parseCSVWithSkippedRows(csvText, file);
                 
                 // 过滤掉空行和无效数据
-                const validData = data.filter(item => 
-                    item && item.元器件名称 && item.元器件名称.trim() !== ''
-                );
+                const validData = data.filter(item => {
+                    // 检查是否有任何字段有值
+                    return Object.values(item).some(value => 
+                        value !== undefined && value !== null && value.toString().trim() !== ''
+                    );
+                });
                 
                 return validData;
             } catch (error) {
                 console.error(`加载文件 ${file} 时出错:`, error);
                 throw error;
-            }
-        }
-        
-        // 获取GitHub仓库中的CSV文件列表
-        async function fetchCSVFileList() {
-            try {
-                statusText.textContent = "正在发现CSV文件...";
-                
-                // 使用GitHub API获取CSV_Prj文件夹内容
-                const apiUrl = 'https://api.github.com/repos/CSUST-IOTQRS/Component-list/contents/CSV_Prj';
-                const response = await fetch(apiUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`GitHub API错误! 状态: ${response.status}`);
-                }
-                
-                const contents = await response.json();
-                
-                // 筛选出CSV文件
-                csvFiles = contents
-                    .filter(item => item.name.toLowerCase().endsWith('.csv'))
-                    .map(item => item.name);
-                
-                if (csvFiles.length === 0) {
-                    throw new Error('在CSV_Prj文件夹中未找到任何CSV文件');
-                }
-                
-                statusText.textContent = `发现 ${csvFiles.length} 个CSV文件`;
-                return csvFiles;
-            } catch (error) {
-                console.error('获取文件列表时出错:', error);
-                statusText.textContent = `获取文件列表失败: ${error.message}`;
-                
-                // 如果API调用失败，使用默认文件列表作为后备
-                csvFiles = [
-                    'LED.CSV',
-                    '二极管-三极管-MOS管.CSV',
-                    '其他.CSV',
-                    '开关-按键.CSV',
-                    '接口座子-排针-排母.CSV',
-                    '电容.CSV',
-                    '电感-磁珠.CSV',
-                    '电阻.CSV',
-                    '集成IC.CSV'
-                ];
-                
-                statusText.textContent = `使用默认文件列表 (${csvFiles.length} 个文件)`;
-                return csvFiles;
             }
         }
         
@@ -526,8 +548,10 @@
         // 初始化加载数据
         async function init() {
             try {
+                statusText.textContent = "开始加载CSV文件数据...";
+                
                 // 首先获取CSV文件列表
-                await fetchCSVFileList();
+                await getCSVFilesFromGitHub();
                 
                 // 然后加载所有CSV文件
                 allData = await loadAllCSVFiles();
@@ -541,6 +565,7 @@
                             <p style="margin: 10px 0;">未能从服务器获取任何元器件数据，请检查：</p>
                             <ul style="text-align: left; max-width: 500px; margin: 0 auto;">
                                 <li>CSV文件是否存在于CSV_Prj文件夹中</li>
+                                <li>文件路径是否正确</li>
                                 <li>文件格式是否符合要求（UTF-8编码，逗号分隔）</li>
                                 <li>CSV文件是否有前两行表格标题</li>
                                 <li>网络连接是否正常</li>
@@ -555,7 +580,7 @@
                 
                 // 渲染表格
                 renderTable(allData);
-                statusText.textContent = `已加载 ${allData.length} 条元器件记录 (来自 ${csvFiles.length} 个文件)`;
+                statusText.textContent = `已加载 ${allData.length} 条元器件记录`;
                 
                 // 隐藏加载动画，显示表格
                 loadingElement.style.display = 'none';
@@ -563,7 +588,7 @@
             } catch (error) {
                 console.error("加载数据时出错:", error);
                 loadingElement.innerHTML = `
-                    <div style="text-align: center; padding: 20极速模式px; background: #ffebee; border-radius: 8px;">
+                    <div style="text-align: center; padding: 20px; background: #ffebee; border-radius: 8px;">
                         <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c; margin-bottom: 15px;"></i>
                         <h3>系统错误</h3>
                         <p>${error.message}</p>
@@ -585,10 +610,10 @@
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${row['元器件名称'] || '-'}</td>
-                    <td>${row['数值'] || '-'}</td>
-                    <td>${row['封装'] || '-'}</td>
-                    <td>${row['数量'] || '0'}</td>
+                    <td>${row['元器件名称'] || row['Name'] || row['name'] || '-'}</td>
+                    <td>${row['数值'] || row['Value'] || row['value'] || '-'}</td>
+                    <td>${row['封装'] || row['Package'] || row['package'] || '-'}</td>
+                    <td>${row['数量'] || row['Quantity'] || row['quantity'] || '0'}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -604,16 +629,24 @@
             
             if (searchTerm === '') {
                 renderTable(allData);
-                statusText.textContent = `已加载 ${allData.length} 条元器件记录 (来自 ${csvFiles.length} 个文件)`;
+                statusText.textContent = `已加载 ${allData.length} 条元器件记录`;
                 return;
             }
             
-            const filteredData = allData.filter(row => 
-                (row['元器件名称'] && row['元器件名称'].toLowerCase().includes(searchTerm)) ||
-                (row['数值'] && row['数值'].toLowerCase().includes(searchTerm)) ||
-                (row['封装'] && row['封装'].toLowerCase().includes(searchTerm)) ||
-                (row['数量'] && row['数量'].toString().includes(searchTerm))
-            );
+            const filteredData = allData.filter(row => {
+                // 检查所有可能的列名格式
+                const name = row['元器件名称'] || row['Name'] || row['name'] || '';
+                const value = row['数值'] || row['Value'] || row['value'] || '';
+                const pkg = row['封装'] || row['Package'] || row['package'] || '';
+                const quantity = row['数量'] || row['Quantity'] || row['quantity'] || '';
+                
+                return (
+                    (name && name.toString().toLowerCase().includes(searchTerm)) ||
+                    (value && value.toString().toLowerCase().includes(searchTerm)) ||
+                    (pkg && pkg.toString().toLowerCase().includes(searchTerm)) ||
+                    (quantity && quantity.toString().toLowerCase().includes(searchTerm))
+                );
+            });
             
             renderTable(filteredData);
             statusText.textContent = `找到 ${filteredData.length} 条匹配记录`;
