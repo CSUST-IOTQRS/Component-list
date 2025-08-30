@@ -21,9 +21,9 @@
 ├── Component-list
     ├── CSV_Prj
     │   ├── [All CSV Project]
-    ├── 物联网实验室嵌入式部门元器件清单.xlsx
     ├── README.md
-    └── index.html
+    ├── index.html
+    └── 物联网实验室嵌入式部门元器件清单.xlsx
 ```
 
 - 在拿到物联网实验室嵌入式部门元器件清单.xlsx这个表格后如果有变动，每个月月底更新一次，同时把对应子表格转化成csv文件上传到CSV_Prj目录下
