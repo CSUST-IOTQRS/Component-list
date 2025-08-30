@@ -298,33 +298,65 @@
             '集成IC.CSV'
         ];
         
+        // 自定义CSV解析函数，跳过前两行
+        function parseCSVWithSkippedRows(csvText, skipRows = 2) {
+            const lines = csvText.split('\n');
+            // 跳过指定行数
+            const dataLines = lines.slice(skipRows);
+            // 重新组合为CSV文本
+            const cleanedCSV = dataLines.join('\n');
+            
+            return new Promise((resolve) => {
+                Papa.parse(cleanedCSV, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        resolve(results.data);
+                    },
+                    error: function(error) {
+                        console.error("解析CSV时出错:", error);
+                        resolve([]);
+                    }
+                });
+            });
+        }
+        
         // 加载所有CSV文件
-        function loadAllCSVFiles() {
-            const promises = csvFiles.map(file => {
-                return new Promise((resolve, reject) => {
+        async function loadAllCSVFiles() {
+            const allData = [];
+            
+            for (const file of csvFiles) {
+                try {
                     // 使用GitHub raw内容的URL
                     const fileUrl = `https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/${file}`;
                     
-                    Papa.parse(fileUrl, {
-                        download: true,
-                        header: true,
-                        skipEmptyLines: true,
-                        complete: function(results) {
-                            // 过滤掉空行和无效数据
-                            const validData = results.data.filter(item => 
-                                item.元器件名称 && item.元器件名称.trim() !== ''
-                            );
-                            resolve(validData);
-                        },
-                        error: function(error) {
-                            console.error(`加载文件 ${file} 时出错:`, error);
-                            resolve([]); // 即使一个文件失败，继续加载其他文件
-                        }
-                    });
-                });
-            });
+                    // 获取CSV文件内容
+                    const response = await fetch(fileUrl);
+                    if (!response.ok) {
+                        console.warn(`无法获取文件: ${file}`);
+                        continue;
+                    }
+                    
+                    const csvText = await response.text();
+                    
+                    // 使用自定义解析函数，跳过前两行
+                    const fileData = await parseCSVWithSkippedRows(csvText, 2);
+                    
+                    if (fileData && fileData.length > 0) {
+                        // 过滤掉空行和无效数据
+                        const validData = fileData.filter(item => 
+                            item.元器件名称 && item.元器件名称.trim() !== ''
+                        );
+                        
+                        allData.push(...validData);
+                        console.log(`已加载文件 ${file}, 包含 ${validData.length} 条记录`);
+                    }
+                } catch (error) {
+                    console.error(`加载文件 ${file} 时出错:`, error);
+                }
+            }
             
-            return Promise.all(promises);
+            return allData;
         }
         
         // 初始化加载数据
@@ -332,10 +364,7 @@
             try {
                 statusText.textContent = "开始加载CSV文件数据...";
                 
-                const results = await loadAllCSVFiles();
-                
-                // 合并所有文件的数据
-                allData = results.flat();
+                allData = await loadAllCSVFiles();
                 
                 if (allData.length === 0) {
                     statusText.textContent = "未找到任何元器件数据";
