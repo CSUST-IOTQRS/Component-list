@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物联网实验室元器件管理系统</title>
+    <title>物联网实验室器件管理系统</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -115,7 +115,7 @@
             padding: 15px;
             margin: 20px 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            display: none; /* 初始隐藏 */
+            display: none;
         }
         
         .file-status-header {
@@ -162,7 +162,7 @@
             padding: 0;
             max-height: 200px;
             overflow-y: auto;
-            display: none; /* 默认收起 */
+            display: none;
         }
         
         .file-status-item {
@@ -218,7 +218,7 @@
             border-left: 4px solid #ffc107;
             font-size: 0.9rem;
             color: #856404;
-            display: none; /* 初始隐藏 */
+            display: none;
         }
         
         .table-container {
@@ -266,6 +266,82 @@
         .emoji-header {
             font-weight: normal;
             margin-right: 6px;
+        }
+        
+        /* 现有器材展示区域 */
+        .inventory-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+        
+        .inventory-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .inventory-header h2 {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+        }
+        
+        .inventory-header h2 i {
+            margin-right: 10px;
+            color: #3498db;
+        }
+        
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .inventory-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        
+        .inventory-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .item-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .item-quantity {
+            display: flex;
+            align-items: center;
+            margin-top: auto;
+        }
+        
+        .quantity-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-right: 8px;
+        }
+        
+        .quantity-value {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #27ae60;
         }
         
         .status {
@@ -369,14 +445,8 @@
                 font-size: 1.8rem;
             }
             
-            .file-status-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .record-count {
-                margin-left: 0;
-                margin-top: 5px;
+            .inventory-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             }
         }
     </style>
@@ -385,7 +455,7 @@
 
     <div class="container">
         <header>
-            <h1><i class="fas fa-search"></i> 物联网实验室元器件管理系统</h1>
+            <h1><i class="fas fa-search"></i> 物联网实验室器件管理系统</h1>
             <div class="time-display">
                 <i class="far fa-clock"></i>
                 <span id="current-time">正在加载时间...</span>
@@ -426,7 +496,7 @@
                 </ul>
                 <div class="file-status-help" id="file-status-help">
                     <i class="fas fa-info-circle"></i> 
-                    如果一直未能正常加载出文件，请到仓库的CSV_Prj目录下手动查找相关CSV文件
+                    如果一直未能加载出异常文件，请到仓库的CSV_Prj目录下手动查找相关CSV文件
                 </div>
             </div>
             
@@ -446,6 +516,16 @@
                 </table>
             </div>
             
+            <!-- 现有器材展示区域 -->
+            <div class="inventory-container" id="inventory-container" style="display: none;">
+                <div class="inventory-header">
+                    <h2><i class="fas fa-boxes"></i> 实验室设备总览</h2>
+                </div>
+                <div class="inventory-grid" id="inventory-grid">
+                    <!-- 器材卡片将通过JS动态填充 -->
+                </div>
+            </div>
+            
             <div class="status">
                 <i class="fas fa-info-circle"></i>
                 <span id="status-text">正在发现CSV文件...</span>
@@ -454,7 +534,7 @@
     </div>
 
     <footer>
-        <p>© 2025 物联网实验室嵌入式部门 | 基于GitHub Pages构建 | DeepSeek完成Web代码</p>
+        <p>© 2025 物联网实验室嵌入式部门 | 基于GitHub Pages构建 | 代码由DeepSeek生成 </p>
     </footer>
 
     <script>
@@ -491,10 +571,13 @@
         const toggleStatusBtn = document.getElementById('toggle-status');
         const errorCountElement = document.getElementById('error-count');
         const fileStatusHelp = document.getElementById('file-status-help');
+        const inventoryContainer = document.getElementById('inventory-container');
+        const inventoryGrid = document.getElementById('inventory-grid');
         
         let allData = [];
         let csvFiles = [];
         let fileStatuses = []; // 存储每个文件加载状态
+        let equipmentData = []; // 存储实验室设备数据
         
         // 为每个文件创建加载状态显示
         function createFileProgressElements() {
@@ -575,6 +658,9 @@
                 csvFiles = contents
                     .filter(item => item.name.toLowerCase().endsWith('.csv'))
                     .map(item => item.name);
+                
+                // 从搜索列表中移除实验室设备.csv文件
+                csvFiles = csvFiles.filter(file => file !== '实验室设备.csv');
                 
                 if (csvFiles.length === 0) {
                     statusText.textContent = "未找到CSV文件，使用默认文件列表";
@@ -682,6 +768,41 @@
             }
         }
         
+        // 加载实验室设备文件
+        async function loadEquipmentFile() {
+            try {
+                const fileUrl = 'https://raw.githubusercontent.com/CSUST-IOTQRS/Component-list/main/CSV_Prj/实验室设备.csv';
+                const response = await fetch(fileUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                
+                // 检查文件内容是否为空
+                if (!csvText || csvText.trim().length === 0) {
+                    throw new Error("文件内容为空");
+                }
+                
+                // 使用自定义解析函数跳过前两行
+                const data = parseCSVWithSkippedRows(csvText, '实验室设备.csv');
+                
+                // 过滤掉空行和无效数据
+                const validData = data.filter(item => {
+                    // 检查是否有任何字段有值
+                    return Object.values(item).some(value => 
+                        value !== undefined && value !== null && value.toString().trim() !== ''
+                    );
+                });
+                
+                return validData;
+            } catch (error) {
+                console.error("加载实验室设备文件时出错:", error);
+                throw error;
+            }
+        }
+        
         // 显示文件加载状态
         function displayFileStatuses() {
             fileStatusList.innerHTML = '';
@@ -714,10 +835,8 @@
                 fileStatusList.appendChild(li);
             });
             
-            // 显示文件状态容器，但保持列表收起状态
+            // 显示文件状态容器
             fileStatusContainer.style.display = 'block';
-            fileStatusList.style.display = 'none'; // 默认收起
-            toggleStatusBtn.textContent = '展开'; // 按钮显示为展开
         }
         
         // 切换状态显示
@@ -762,6 +881,53 @@
             return results.flat();
         }
         
+        // 渲染实验室设备总览
+        function renderInventory(data) {
+            inventoryGrid.innerHTML = '';
+            
+            if (data.length === 0) {
+                inventoryGrid.innerHTML = '<div style="text-align: center; padding: 20px; color: #7f8c8d;">未找到设备数据</div>';
+                return;
+            }
+            
+            // 按设备名称分组并计算总数量
+            const inventoryMap = new Map();
+            
+            data.forEach(item => {
+                // 获取设备名称（兼容不同列名）
+                const name = item['设备名称'] || item['元器件名称'] || item['Name'] || item['name'] || '未知设备';
+                // 获取数量（兼容不同列名）
+                const quantity = parseInt(item['数量'] || item['Quantity'] || item['quantity'] || '0');
+                
+                if (inventoryMap.has(name)) {
+                    inventoryMap.set(name, inventoryMap.get(name) + quantity);
+                } else {
+                    inventoryMap.set(name, quantity);
+                }
+            });
+            
+            // 转换为数组并排序（按数量降序）
+            const inventoryArray = Array.from(inventoryMap, ([name, quantity]) => ({ name, quantity }));
+            inventoryArray.sort((a, b) => b.quantity - a.quantity);
+            
+            // 渲染设备卡片
+            inventoryArray.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'inventory-item';
+                card.innerHTML = `
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-quantity">
+                        <span class="quantity-label">库存:</span>
+                        <span class="quantity-value">${item.quantity}</span>
+                    </div>
+                `;
+                inventoryGrid.appendChild(card);
+            });
+            
+            // 显示设备总览区域
+            inventoryContainer.style.display = 'block';
+        }
+        
         // 初始化加载数据
         async function init() {
             try {
@@ -770,8 +936,17 @@
                 // 首先获取CSV文件列表
                 await getCSVFilesFromGitHub();
                 
-                // 然后加载所有CSV文件
+                // 然后加载所有CSV文件（不包括实验室设备.csv）
                 allData = await loadAllCSVFiles();
+                
+                // 单独加载实验室设备.csv文件
+                try {
+                    equipmentData = await loadEquipmentFile();
+                    updateFileStatus('实验室设备.csv', 'success', '', equipmentData.length);
+                } catch (error) {
+                    console.error("加载实验室设备文件时出错:", error);
+                    updateFileStatus('实验室设备.csv', 'error', error.message, 0);
+                }
                 
                 // 显示文件加载状态
                 displayFileStatuses();
@@ -801,6 +976,11 @@
                 // 渲染表格
                 renderTable(allData);
                 statusText.textContent = `已加载 ${allData.length} 条元器件记录`;
+                
+                // 渲染实验室设备总览
+                if (equipmentData.length > 0) {
+                    renderInventory(equipmentData);
+                }
                 
                 // 隐藏加载动画，显示表格
                 loadingElement.style.display = 'none';
