@@ -25,9 +25,9 @@
 ├── Component-list
     ├── CSV_Prj
     │   ├── [All CSV Project]
-    ├── 物联网实验室嵌入式部门元器件清单.xlsx
+    ├── index.html
     ├── README.md
-    └── index.html
+    └── 物联网实验室嵌入式部门元器件清单.xlsx
 ```
 
 ### 更新流程 🔄
