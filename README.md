@@ -24,10 +24,9 @@
 ```
 ├── Component-list
     ├── CSV_Prj
-    │   ├── [All CSV Project]
-    ├── index.html
+    │   ├── [All CSV Project] 
     ├── README.md
-    └── 物联网实验室嵌入式部门元器件清单.xlsx
+    └── index.html
 ```
 
 ### 更新流程 🔄
