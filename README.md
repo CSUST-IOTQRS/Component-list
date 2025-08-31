@@ -8,9 +8,9 @@
 > Github Page静态网页的搭建可以参考这两篇博客：                                                                                   1、[如何使用Github pages托管网页_github静态网页托管-CSDN博客](https://blog.csdn.net/Tim_Cookerr/article/details/125582436?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522f3b2c823f92d82c73796ae53b6c12a59%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=f3b2c823f92d82c73796ae53b6c12a59&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~baidu_landing_v2~default-7-125582436-null-null.142^v102^pc_search_result_base2&utm_term=github%20pages&spm=1018.2226.3001.4187)                                                 2、[github pages使用免费CDN加速-netlify_github pages 加速-CSDN博客](https://blog.csdn.net/q2158798/article/details/149050188?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522e0293a1f84b781f87a44a35b794386ca%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=e0293a1f84b781f87a44a35b794386ca&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduend~default-1-149050188-null-null.142^v102^pc_search_result_base2&utm_term=github%20pages%E5%8A%A0%E9%80%9F&spm=1018.2226.3001.4187)
 > 
 
-🖱️ 点击这个连接即可进入查询界面：[物联网实验室元器件管理系统](https://csust-iotqrs.github.io/Component-list/)
+🖱️ 点击这个连接即可进入查询界面：[物联网实验室器件管理系统](https://csust-iotqrs.github.io/Component-list/)
 
-⚡ 如果上面的访问异常可以打开这个加速链接：[物联网实验室元器件管理系统(加速版)](https://component-list-1.netlify.app/)
+⚡ 如果上面的访问异常可以打开这个加速链接：[物联网实验室器件管理系统(加速版)](https://component-list-1.netlify.app/)
 
 ## 元器件采购 🛒
 
